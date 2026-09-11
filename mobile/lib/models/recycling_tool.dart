@@ -17,6 +17,17 @@ class ToolParameter {
     this.status,
   });
 
+  factory ToolParameter.fromJson(Map<String, dynamic> json) {
+    return ToolParameter(
+      label: json['label'] ?? '',
+      value: (json['value'] ?? 0.0).toDouble(),
+      unit: json['unit'] ?? '',
+      minTarget: (json['minTarget'] ?? 0.0).toDouble(),
+      maxTarget: (json['maxTarget'] ?? 0.0).toDouble(),
+      status: json['status'],
+    );
+  }
+
   bool get isAlert => value < minTarget || value > maxTarget;
 
   String get recommendation {
@@ -48,6 +59,22 @@ class RecyclingTool {
     required this.parameters,
     this.emissionStatus = 'Normal',
   });
+
+  factory RecyclingTool.fromJson(Map<String, dynamic> json) {
+    return RecyclingTool(
+      id: json['id'].toString(),
+      name: json['name'] ?? '',
+      type: ToolType.values.firstWhere(
+        (e) => e.toString().split('.').last == json['type'],
+        orElse: () => ToolType.incinerator,
+      ),
+      emissionStatus: json['emissionStatus'] ?? 'Normal',
+      parameters: (json['parameters'] as List?)
+              ?.map((p) => ToolParameter.fromJson(p))
+              .toList() ??
+          [],
+    );
+  }
 
   bool get hasAlert => parameters.any((p) => p.isAlert);
 }

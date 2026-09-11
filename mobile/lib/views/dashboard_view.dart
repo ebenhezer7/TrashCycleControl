@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/recycling_tool.dart';
+import '../services/api_service.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -9,66 +10,129 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
-  // Dummy data initialization
-  final List<RecyclingTool> tools = [
-    RecyclingTool(
-      id: '1',
-      name: 'Low-Smoke Incinerator',
-      type: ToolType.incinerator,
-      emissionStatus: 'Aman',
-      parameters: [
-        ToolParameter(
-          label: 'Suhu Ruang Bakar',
-          value: 450.0,
-          unit: '°C',
-          minTarget: 400.0,
-          maxTarget: 600.0,
-        ),
-      ],
-    ),
-    RecyclingTool(
-      id: '2',
-      name: 'Smart Composting Bin',
-      type: ToolType.composting,
-      parameters: [
-        ToolParameter(
-          label: 'Kelembapan Kompos',
-          value: 35.5, // Alert state (< 40%)
-          unit: '%',
-          minTarget: 40.0,
-          maxTarget: 60.0,
-        ),
-        ToolParameter(
-          label: 'Suhu Termofilik',
-          value: 55.0,
-          unit: '°C',
-          minTarget: 45.0,
-          maxTarget: 65.0,
-        ),
-      ],
-    ),
-    RecyclingTool(
-      id: '3',
-      name: 'Sistem Pirolisis Plastik',
-      type: ToolType.pyrolysis,
-      parameters: [
-        ToolParameter(
-          label: 'Suhu Reaktor',
-          value: 420.0,
-          unit: '°C',
-          minTarget: 350.0,
-          maxTarget: 500.0,
-        ),
-        ToolParameter(
-          label: 'Tekanan Internal',
-          value: 0.6, // Alert state (> 0.5 bar)
-          unit: 'bar',
-          minTarget: 0.0,
-          maxTarget: 0.5,
-        ),
-      ],
-    ),
-  ];
+  final ApiService _apiService = ApiService();
+
+  // Local state for tools data
+  late List<RecyclingTool> tools;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inisialisasi dengan dummy data awal
+    tools = [
+      RecyclingTool(
+        id: '1',
+        name: 'Low-Smoke Incinerator',
+        type: ToolType.incinerator,
+        emissionStatus: 'Aman',
+        parameters: [
+          ToolParameter(
+            label: 'Suhu Ruang Bakar',
+            value: 450.0,
+            unit: '°C',
+            minTarget: 400.0,
+            maxTarget: 600.0,
+          ),
+        ],
+      ),
+      RecyclingTool(
+        id: '2',
+        name: 'Smart Composting Bin',
+        type: ToolType.composting,
+        parameters: [
+          ToolParameter(
+            label: 'Kelembapan Kompos',
+            value: 35.5, // Alert state (< 40%)
+            unit: '%',
+            minTarget: 40.0,
+            maxTarget: 60.0,
+          ),
+          ToolParameter(
+            label: 'Suhu Termofilik',
+            value: 55.0,
+            unit: '°C',
+            minTarget: 45.0,
+            maxTarget: 65.0,
+          ),
+        ],
+      ),
+      RecyclingTool(
+        id: '3',
+        name: 'Sistem Pirolisis Plastik',
+        type: ToolType.pyrolysis,
+        parameters: [
+          ToolParameter(
+            label: 'Suhu Reaktor',
+            value: 420.0,
+            unit: '°C',
+            minTarget: 350.0,
+            maxTarget: 500.0,
+          ),
+          ToolParameter(
+            label: 'Tekanan Internal',
+            value: 0.6, // Alert state (> 0.5 bar)
+            unit: 'bar',
+            minTarget: 0.0,
+            maxTarget: 0.5,
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Future<void> _resolveAlert(RecyclingTool tool, ToolParameter param) async {
+    // 1. Tampilkan loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // 2. Panggil ApiService untuk log aksi
+    final success = await _apiService.postActionLog(
+      tool.id,
+      'Resolve Alert: ${param.label} dipulihkan secara manual.',
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context); // Tutup loading
+
+    if (success) {
+      // 3. Update state lokal untuk mensimulasikan pemulihan
+      setState(() {
+        int toolIndex = tools.indexOf(tool);
+        int paramIndex = tools[toolIndex].parameters.indexOf(param);
+
+        // Update nilai ke target ideal
+        double targetMid = (param.minTarget + param.maxTarget) / 2;
+
+        List<ToolParameter> newParams = List.from(tools[toolIndex].parameters);
+        newParams[paramIndex] = ToolParameter(
+          label: param.label,
+          value: targetMid, // Nilai dinormalisasi
+          unit: param.unit,
+          minTarget: param.minTarget,
+          maxTarget: param.maxTarget,
+        );
+
+        tools[toolIndex] = RecyclingTool(
+          id: tool.id,
+          name: tool.name,
+          type: tool.type,
+          emissionStatus: tool.emissionStatus,
+          parameters: newParams,
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Status ${param.label} berhasil ditandai selesai.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mengirim log ke server.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,13 +141,24 @@ class _DashboardViewState extends State<DashboardView> {
         title: const Text('Dashboard Monitoring'),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              // Di sini nanti panggil _apiService.fetchDevicesStatus()
+            },
+          )
+        ],
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0),
         itemCount: tools.length,
         itemBuilder: (context, index) {
           final tool = tools[index];
-          return ToolCard(tool: tool);
+          return ToolCard(
+            tool: tool,
+            onResolve: (param) => _resolveAlert(tool, param),
+          );
         },
       ),
     );
@@ -92,8 +167,13 @@ class _DashboardViewState extends State<DashboardView> {
 
 class ToolCard extends StatelessWidget {
   final RecyclingTool tool;
+  final Function(ToolParameter) onResolve;
 
-  const ToolCard({super.key, required this.tool});
+  const ToolCard({
+    super.key,
+    required this.tool,
+    required this.onResolve,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,29 +239,7 @@ class ToolCard extends StatelessWidget {
             ),
           ),
 
-          // Emission status for Incinerator
-          if (tool.type == ToolType.incinerator)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  const Text('Status Emisi: ', style: TextStyle(fontWeight: FontWeight.w500)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      tool.emissionStatus,
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Recommendation Banners
+          // Recommendation Banners & Action Buttons
           ...tool.parameters.where((p) => p.isAlert).map((p) => _buildRecommendationBanner(context, p)),
 
           const SizedBox(height: 8),
@@ -213,7 +271,6 @@ class ToolCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          // Progress Bar/Indicator
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
@@ -242,20 +299,37 @@ class ToolCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: colorScheme.error.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colorScheme.error.withOpacity(0.3)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.lightbulb_outline, color: colorScheme.error, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Rekomendasi: ${param.recommendation}',
-              style: TextStyle(
-                color: colorScheme.error,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: colorScheme.error, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Rekomendasi: ${param.recommendation}',
+                  style: TextStyle(
+                    color: colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => onResolve(param),
+              icon: const Icon(Icons.check_circle_outline, size: 18),
+              label: const Text('Tandai Selesai (Resolve)'),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
               ),
             ),
           ),
@@ -265,7 +339,6 @@ class ToolCard extends StatelessWidget {
   }
 
   double _calculateProgress(ToolParameter param) {
-    // Normalizing value for progress bar (simplified)
     double progress = param.value / (param.maxTarget * 1.2);
     return progress.clamp(0.0, 1.0);
   }
