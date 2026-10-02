@@ -14,7 +14,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/backend" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0,
@@ -36,7 +36,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "v10.0.0",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/62812/OneDrive/Dokumen/GitHub/TrashCycleControl/mobile",
     "settings.editor.selected.configurable": "templates.modelproviders.configurable"
