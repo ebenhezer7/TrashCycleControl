@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
+import 'services/api_service.dart';
 import 'views/dashboard_view.dart';
+import 'views/login_view.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Cek token tersimpan di SharedPreferences
+  final apiService = ApiService();
+  final bool loggedIn = await apiService.isLoggedIn();
+
+  runApp(MyApp(isLoggedIn: loggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+
+  const MyApp({
+    super.key,
+    required this.isLoggedIn,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +33,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const DashboardView(),
+      home: isLoggedIn ? const DashboardView() : const LoginView(),
     );
   }
 }
