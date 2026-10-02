@@ -4,7 +4,17 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a9991d44-7ed1-47eb-980b-efbeecae34a1" name="Changes" comment="" />
+    <list default="true" id="a9991d44-7ed1-47eb-980b-efbeecae34a1" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/Api/DeviceController.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/Models/Device.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/Models/SensorLog.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/composer.lock" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/database/migrations/2024_01_01_000001_create_devices_table.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/database/migrations/2024_01_01_000002_create_sensor_logs_table.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/database/seeders/DeviceSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/seeders/DatabaseSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/seeders/DatabaseSeeder.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/api.php" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
