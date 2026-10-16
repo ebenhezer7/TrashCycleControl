@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/device_model.dart';
 import '../services/api_service.dart';
+import 'notes_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -74,6 +75,16 @@ class _DashboardViewState extends State<DashboardView> {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.note_alt_outlined),
+            tooltip: 'Catatan Shift',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotesView()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh Data',
