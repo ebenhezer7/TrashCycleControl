@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/device_model.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import 'notes_view.dart';
+import 'scanner_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -12,11 +14,20 @@ class DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<DashboardView> {
   final ApiService _apiService = ApiService();
+  final NotificationService _notificationService = NotificationService();
   late Future<List<DeviceModel>> _devicesFuture;
+
+  // Constants untuk Tema Industrial SCADA Dark-Mode
+  static const Color scadaBg = Color(0xFF0F1218);
+  static const Color scadaAppBarBg = Color(0xFF161B22);
+  static const Color scadaNormal = Color(0xFF00E5FF);
+  static const Color scadaAlert = Color(0xFFFF3366);
+  static const Color scadaTextPrimary = Color(0xFFF0F4F8);
 
   @override
   void initState() {
     super.initState();
+    _notificationService.init();
     _refreshDevices();
   }
 
@@ -29,19 +40,15 @@ class _DashboardViewState extends State<DashboardView> {
 
   /// Mengirimkan log tindakan perbaikan ke backend lalu me-refresh data
   Future<void> _handleResolve(DeviceModel device) async {
-    final actionText = 'Tindakan perbaikan otomatis untuk status [${device.alertStatus}] diselesaikan oleh petugas.';
-
-    // 1. Tampilkan loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(color: scadaNormal),
       ),
     );
 
-    // 2. Panggil API Service resolveAction
-    final success = await _apiService.resolveAction(device.id, actionText);
+    final success = await _apiService.resolveDeviceIssue(device.id);
 
     if (!mounted) return;
     Navigator.pop(context); // Tutup loading dialog
@@ -50,33 +57,98 @@ class _DashboardViewState extends State<DashboardView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Perbaikan untuk ${device.name} berhasil ditandai selesai!'),
-          backgroundColor: Colors.green,
+          backgroundColor: scadaNormal,
           behavior: SnackBarBehavior.floating,
         ),
       );
-      // 3. Trigger refresh ulang dari backend agar status alert terbarui
       _refreshDevices();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gagal mengirim tindakan perbaikan ke server. Silakan coba lagi.'),
-          backgroundColor: Colors.red,
+          backgroundColor: scadaAlert,
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
+  /// Membuka Kamera Scanner QR Code Alat
+  Future<void> _openScanner() async {
+    final scannedCode = await Navigator.push<String?>(
+      context,
+      MaterialPageRoute(builder: (context) => const ScannerView()),
+    );
+
+    if (!mounted) return;
+
+    if (scannedCode != null && scannedCode.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('QR Code Terdeteksi: $scannedCode'),
+          backgroundColor: scadaNormal,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _refreshDevices();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pemindaian QR Code dibatalkan.'),
+          backgroundColor: Color(0xFF8B98A9),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  /// Simulasi memicu Notifikasi Peringatan Lokal
+  Future<void> _triggerSimulatedNotification() async {
+    await _notificationService.showNotification(
+      title: '🚨 Peringatan SCADA',
+      body: 'Suhu Composter Melewati Batas Aman (75°C)! Segera periksa lokasi.',
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Notifikasi Peringatan Lokal dipicu!'),
+        backgroundColor: scadaAlert,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: scadaBg,
       appBar: AppBar(
-        title: const Text('Dashboard Monitoring'),
+        title: const Text(
+          'DASHBOARD MONITORING',
+          style: TextStyle(
+            color: scadaTextPrimary,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: scadaAppBarBg,
+        elevation: 4,
         actions: [
           IconButton(
-            icon: const Icon(Icons.note_alt_outlined),
+            icon: const Icon(Icons.qr_code_scanner, color: scadaNormal),
+            tooltip: 'Scan QR Alat',
+            onPressed: _openScanner,
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined, color: scadaAlert),
+            tooltip: 'Simulasi Peringatan',
+            onPressed: _triggerSimulatedNotification,
+          ),
+          IconButton(
+            icon: const Icon(Icons.note_alt_outlined, color: scadaNormal),
             tooltip: 'Catatan Shift',
             onPressed: () {
               Navigator.push(
@@ -86,13 +158,15 @@ class _DashboardViewState extends State<DashboardView> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: scadaNormal),
             tooltip: 'Refresh Data',
             onPressed: _refreshDevices,
           ),
         ],
       ),
       body: RefreshIndicator(
+        color: scadaNormal,
+        backgroundColor: scadaAppBarBg,
         onRefresh: () async => _refreshDevices(),
         child: FutureBuilder<List<DeviceModel>>(
           future: _devicesFuture,
@@ -103,9 +177,12 @@ class _DashboardViewState extends State<DashboardView> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(),
+                    CircularProgressIndicator(color: scadaNormal),
                     SizedBox(height: 16),
-                    Text('Memuat data alat daur ulang...'),
+                    Text(
+                      'Memuat telemetry sistem SCADA...',
+                      style: TextStyle(color: scadaTextPrimary),
+                    ),
                   ],
                 ),
               );
@@ -123,26 +200,32 @@ class _DashboardViewState extends State<DashboardView> {
                       const Icon(
                         Icons.cloud_off_rounded,
                         size: 64,
-                        color: Colors.redAccent,
+                        color: scadaAlert,
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'Gagal Mengambil Data',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                      const Text(
+                        'KONEKSI TELEMETRY GAGAL',
+                        style: TextStyle(
+                          color: scadaTextPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         errorMessage,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                        style: const TextStyle(color: Color(0xFF8B98A9)),
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: _refreshDevices,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scadaNormal,
+                          foregroundColor: Colors.black,
+                        ),
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Coba Lagi'),
+                        label: const Text('COBA LAGI'),
                       ),
                     ],
                   ),
@@ -158,19 +241,23 @@ class _DashboardViewState extends State<DashboardView> {
                   shrinkWrap: true,
                   padding: const EdgeInsets.all(24.0),
                   children: [
-                    const Icon(Icons.devices_other, size: 64, color: Colors.grey),
+                    const Icon(Icons.devices_other, size: 64, color: Color(0xFF8B98A9)),
                     const SizedBox(height: 16),
                     const Text(
-                      'Belum ada alat terdaftar.',
+                      'Data kosong',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: Color(0xFF8B98A9)),
                     ),
                     const SizedBox(height: 16),
                     Center(
                       child: ElevatedButton.icon(
                         onPressed: _refreshDevices,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scadaNormal,
+                          foregroundColor: Colors.black,
+                        ),
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Refresh'),
+                        label: const Text('REFRESH'),
                       ),
                     )
                   ],
@@ -201,6 +288,14 @@ class DeviceCard extends StatelessWidget {
   final DeviceModel device;
   final VoidCallback onResolve;
 
+  static const Color scadaCardBg = Color(0xFF1A1F29);
+  static const Color scadaHeaderBg = Color(0xFF222836);
+  static const Color scadaBorder = Color(0xFF2C3444);
+  static const Color scadaNormal = Color(0xFF00E5FF);
+  static const Color scadaAlert = Color(0xFFFF3366);
+  static const Color scadaTextPrimary = Color(0xFFF0F4F8);
+  static const Color scadaTextSecondary = Color(0xFF8B98A9);
+
   const DeviceCard({
     super.key,
     required this.device,
@@ -209,17 +304,17 @@ class DeviceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isAlert = device.hasAlert;
 
     return Card(
-      elevation: isAlert ? 4 : 1,
+      elevation: 4,
+      color: scadaCardBg,
       margin: const EdgeInsets.only(bottom: 16.0),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isAlert ? colorScheme.error : Colors.transparent,
-          width: 2,
+          color: isAlert ? scadaAlert : scadaBorder,
+          width: isAlert ? 1.8 : 1.0,
         ),
       ),
       child: Column(
@@ -227,144 +322,181 @@ class DeviceCard extends StatelessWidget {
         children: [
           // Header Card
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isAlert
-                  ? colorScheme.errorContainer
-                  : colorScheme.surfaceVariant,
+              color: isAlert ? scadaAlert.withAlpha(38) : scadaHeaderBg,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      _getToolIcon(device.type),
-                      color: isAlert ? colorScheme.error : colorScheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          device.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: isAlert ? colorScheme.onErrorContainer : null,
-                          ),
+                Icon(
+                  _getToolIcon(device.type),
+                  color: isAlert ? scadaAlert : scadaNormal,
+                  size: 26,
+                ),
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        device.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isAlert ? scadaAlert : scadaTextPrimary,
+                          letterSpacing: 0.5,
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tipe: ${device.type}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: scadaTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                if (isAlert)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: scadaAlert,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.white),
+                        const SizedBox(width: 4),
                         Text(
-                          'Tipe: ${device.type}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isAlert
-                                ? colorScheme.onErrorContainer.withOpacity(0.8)
-                                : colorScheme.outline,
+                          device.alertStatus,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                if (isAlert)
-                  Chip(
-                    avatar: Icon(Icons.warning_amber_rounded, size: 16, color: colorScheme.onError),
-                    label: Text(
-                      device.alertStatus,
-                      style: TextStyle(color: colorScheme.onError, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                    backgroundColor: colorScheme.error,
                   )
                 else
-                  Chip(
-                    avatar: const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
-                    label: const Text(
-                      'Normal',
-                      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: scadaNormal.withAlpha(38),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: scadaNormal.withAlpha(102)),
                     ),
-                    backgroundColor: Colors.green.withOpacity(0.1),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 14, color: scadaNormal),
+                        SizedBox(width: 4),
+                        Text(
+                          'NORMAL',
+                          style: TextStyle(
+                            color: scadaNormal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
           ),
 
-          // Parameter Sensor List
+          // Parameter Telemetry Data
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 _buildSensorRow(
-                  context,
                   label: 'Suhu',
                   value: '${device.currentTemperature.toStringAsFixed(1)} °C',
                   icon: Icons.thermostat,
-                  color: device.currentTemperature > 80 ? colorScheme.error : colorScheme.primary,
+                  color: device.currentTemperature > 80 ? scadaAlert : scadaNormal,
                 ),
-                const Divider(),
+                const Divider(color: scadaBorder, height: 16),
                 _buildSensorRow(
-                  context,
                   label: 'Kelembapan',
                   value: '${device.currentHumidity.toStringAsFixed(1)} %',
                   icon: Icons.water_drop,
-                  color: device.currentHumidity < 35 ? colorScheme.error : colorScheme.primary,
+                  color: device.currentHumidity < 35 ? scadaAlert : scadaNormal,
                 ),
-                const Divider(),
+                const Divider(color: scadaBorder, height: 16),
                 _buildSensorRow(
-                  context,
                   label: 'Tekanan',
                   value: '${device.currentPressure.toStringAsFixed(2)} bar',
                   icon: Icons.speed,
-                  color: device.currentPressure > 0.5 ? colorScheme.error : colorScheme.primary,
+                  color: device.currentPressure > 0.5 ? scadaAlert : scadaNormal,
                 ),
               ],
             ),
           ),
 
-          // Banner Rekomendasi & Tombol Resolve jika sedang Alert
+          // Banner Alert & Tombol Resolve jika Status Bermasalah
           if (isAlert) ...[
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colorScheme.error.withOpacity(0.3)),
+                color: scadaAlert.withAlpha(30),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: scadaAlert.withAlpha(102)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.lightbulb_outline, color: colorScheme.error, size: 20),
+                      const Icon(Icons.lightbulb_outline, color: scadaAlert, size: 18),
                       const SizedBox(width: 8),
-                      Expanded(
+                      const Expanded(
                         child: Text(
-                          'Rekomendasi: Periksa parameter alat dan lalukan pemulihan.',
+                          'Rekomendasi: Periksa parameter alat dan lakukan pemulihan.',
                           style: TextStyle(
-                            color: colorScheme.error,
+                            color: scadaAlert,
                             fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
+                    height: 42,
                     child: FilledButton.icon(
                       onPressed: onResolve,
                       icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: const Text('Tandai Selesai (Resolve)'),
+                      label: const Text(
+                        'TANDAI SELESAI (RESOLVE)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
                       style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.error,
-                        foregroundColor: colorScheme.onError,
+                        backgroundColor: scadaAlert,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
@@ -377,35 +509,38 @@ class DeviceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSensorRow(
-    BuildContext context, {
+  Widget _buildSensorRow({
     required String label,
     required String value,
     required IconData icon,
     required Color color,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: color),
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(fontSize: 15)),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: scadaTextPrimary,
+              ),
             ),
+          ],
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontFamily: 'monospace',
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

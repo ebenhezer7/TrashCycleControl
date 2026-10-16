@@ -18,6 +18,14 @@ class _LoginViewState extends State<LoginView> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
+  // Constants untuk Tema Industrial SCADA Dark-Mode
+  static const Color scadaBg = Color(0xFF0F1218);
+  static const Color scadaBorder = Color(0xFF2C3444);
+  static const Color scadaNormal = Color(0xFF00E5FF);
+  static const Color scadaAlert = Color(0xFFFF3366);
+  static const Color scadaTextPrimary = Color(0xFFF0F4F8);
+  static const Color scadaTextSecondary = Color(0xFF8B98A9);
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -29,9 +37,7 @@ class _LoginViewState extends State<LoginView> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Sembunyikan keyboard saat proses login
     FocusScope.of(context).unfocus();
-
     setState(() => _isLoading = true);
 
     final email = _emailController.text.trim();
@@ -46,13 +52,12 @@ class _LoginViewState extends State<LoginView> {
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Login berhasil! Selamat bekerja.'),
-          backgroundColor: Colors.green,
+          content: Text('Login berhasil! Token tersimpan.'),
+          backgroundColor: scadaNormal,
           behavior: SnackBarBehavior.floating,
         ),
       );
 
-      // Navigasi ke DashboardView
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const DashboardView()),
@@ -61,7 +66,7 @@ class _LoginViewState extends State<LoginView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Login gagal.'),
-          backgroundColor: Colors.red,
+          backgroundColor: scadaAlert,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -70,9 +75,8 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: scadaBg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -83,52 +87,73 @@ class _LoginViewState extends State<LoginView> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo / Header Icon
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.recycling_rounded,
-                      size: 54,
-                      color: colorScheme.onPrimaryContainer,
+                  // Header Logo / Icon
+                  Center(
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: scadaNormal.withAlpha(30),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: scadaNormal, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.recycling_rounded,
+                        size: 54,
+                        color: scadaNormal,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Judul & Subtitle
-                  Text(
+                  const Text(
                     'TrashCycleControl',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.primary,
-                        ),
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: scadaTextPrimary,
+                      letterSpacing: 1.0,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Portal Masuk Petugas Lapangan',
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Portal Autentikasi Petugas Lapangan',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.outline,
-                        ),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: scadaTextSecondary,
+                    ),
                   ),
                   const SizedBox(height: 36),
 
-                  // Input Field Email
+                  // Email Input
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
+                    style: const TextStyle(color: scadaTextPrimary),
                     decoration: InputDecoration(
                       labelText: 'Email Petugas',
                       hintText: 'petugas@trashcycle.com',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
+                      hintStyle: TextStyle(color: scadaTextSecondary.withAlpha(120)),
+                      labelStyle: const TextStyle(color: scadaTextSecondary),
+                      prefixIcon: const Icon(Icons.email_outlined, color: scadaNormal),
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaNormal, width: 2),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaAlert),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaAlert, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -144,18 +169,21 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Input Field Password
+                  // Password Input
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _handleLogin(),
+                    style: const TextStyle(color: scadaTextPrimary),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      labelStyle: const TextStyle(color: scadaTextSecondary),
+                      prefixIcon: const Icon(Icons.lock_outline, color: scadaNormal),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                          color: scadaTextSecondary,
                         ),
                         onPressed: () {
                           setState(() {
@@ -163,8 +191,21 @@ class _LoginViewState extends State<LoginView> {
                           });
                         },
                       ),
-                      border: OutlineInputBorder(
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaNormal, width: 2),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaAlert),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: scadaAlert, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -179,12 +220,14 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Tombol Submit Login
+                  // Submit Button
                   SizedBox(
                     height: 50,
                     child: FilledButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       style: FilledButton.styleFrom(
+                        backgroundColor: scadaNormal,
+                        foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -195,14 +238,15 @@ class _LoginViewState extends State<LoginView> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
+                                color: Colors.black,
                               ),
                             )
                           : const Text(
-                              'Masuk (Login)',
+                              'MASUK (LOGIN)',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
                               ),
                             ),
                     ),

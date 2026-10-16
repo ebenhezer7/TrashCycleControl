@@ -9,8 +9,6 @@ import '../models/device_model.dart';
 /// Service untuk menangani komunikasi REST API dengan server backend Laravel.
 class ApiService {
   // Base URL endpoint API Laravel.
-  // Gunakan '10.0.2.2' jika menggunakan Emulator Android bawaan Android Studio.
-  // Gunakan IP lokal PC (contoh: 'http://192.168.1.10:8000/api/v1') jika menggunakan Device Fisik.
   static const String baseUrl = 'http://10.0.2.2:8000/api/v1';
 
   // Key untuk menyimpan token autentikasi di SharedPreferences
@@ -40,9 +38,6 @@ class ApiService {
 
   /// 1. Autentikasi (Login) Petugas Lapangan.
   /// HTTP POST -> `/api/v1/auth/login`
-  ///
-  /// Menyimpan token ke SharedPreferences jika login berhasil.
-  /// Mengembalikan Map berisi `{'success': bool, 'message': String}`.
   Future<Map<String, dynamic>> login(String email, String password) async {
     final Uri url = Uri.parse('$baseUrl/auth/login');
 
@@ -78,7 +73,6 @@ class ApiService {
         }
 
         if (token != null && token.isNotEmpty) {
-          // Simpan token ke SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(tokenKey, token);
 
@@ -125,7 +119,7 @@ class ApiService {
     }
   }
 
-  /// Memeriksa apakah pengguna sudah terautentikasi (memiliki token di SharedPreferences).
+  /// Memeriksa apakah pengguna sudah terautentikasi.
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
@@ -191,7 +185,7 @@ class ApiService {
       throw Exception('Koneksi ke server timeout. Silakan coba beberapa saat lagi.');
     } on FormatException catch (e) {
       developer.log('Format JSON tidak sesuai: $e', name: 'ApiService', level: 1000);
-      throw Exception('Format data dari server tidak valid.');
+      throw FormatException('Format data dari server tidak valid: ${e.message}');
     } catch (e) {
       developer.log('Kesalahan tidak terduga saat fetchDevices: $e', name: 'ApiService', level: 1000);
       rethrow;
@@ -244,6 +238,13 @@ class ApiService {
       developer.log('Exception saat resolveAction: $e', name: 'ApiService', level: 1000);
       return false;
     }
+  }
+
+  /// 4. Memproses penyelesaian masalah alat (resolve) dan mengirimkan status pemulihan ke backend Laravel.
+  /// HTTP POST -> `/api/v1/actions`
+  Future<bool> resolveDeviceIssue(String deviceId, [String? actionText]) async {
+    final text = actionText ?? 'Pemulihan status alat ke Normal oleh petugas.';
+    return resolveAction(deviceId, text);
   }
 
   /// Method kompatibilitas jika dipanggil dengan nama fungsi lama

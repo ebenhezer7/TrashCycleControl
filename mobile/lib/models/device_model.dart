@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Model data untuk menampung informasi alat daur ulang
 /// (Incinerator, Composter, Pirolisis) beserta data sensor dan status alert.
 class DeviceModel {
@@ -22,10 +20,19 @@ class DeviceModel {
   });
 
   /// Factory method untuk konversi data JSON dari REST API Laravel ke object DeviceModel.
-  /// Menangani fleksibilitas penamaan atribut (snake_case / camelCase) serta tipe data.
+  /// Menangani fleksibilitas penamaan atribut (snake_case / camelCase) serta validasi field wajib.
   factory DeviceModel.fromJson(Map<String, dynamic> json) {
+    if (!json.containsKey('id') && !json.containsKey('device_id')) {
+      throw const FormatException('JSON kehilangan field wajib: id/device_id');
+    }
+
+    final idVal = json['id'] ?? json['device_id'];
+    if (idVal == null) {
+      throw const FormatException('Field wajib id tidak boleh null');
+    }
+
     return DeviceModel(
-      id: json['id']?.toString() ?? '',
+      id: idVal.toString(),
       name: json['name'] as String? ?? json['device_name'] as String? ?? 'Alat Daur Ulang',
       type: json['type'] as String? ?? json['device_type'] as String? ?? 'Incinerator',
       currentTemperature: _parseDouble(

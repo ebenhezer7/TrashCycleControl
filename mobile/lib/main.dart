@@ -33,7 +33,8 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: isLoggedIn ? const DashboardView() : const LoginView(),
+      home: DashboardView(),
+      // home: isLoggedIn ? const DashboardView() : const LoginView(),
     );
   }
 }
