@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/device_model.dart';
 import '../services/api_service.dart';
-import '../services/notification_service.dart';
-import 'notes_view.dart';
-import 'scanner_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -14,7 +11,6 @@ class DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<DashboardView> {
   final ApiService _apiService = ApiService();
-  final NotificationService _notificationService = NotificationService();
   late Future<List<DeviceModel>> _devicesFuture;
 
   // Constants untuk Tema Industrial SCADA Dark-Mode
@@ -27,7 +23,6 @@ class _DashboardViewState extends State<DashboardView> {
   @override
   void initState() {
     super.initState();
-    _notificationService.init();
     _refreshDevices();
   }
 
@@ -73,52 +68,6 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  /// Membuka Kamera Scanner QR Code Alat
-  Future<void> _openScanner() async {
-    final scannedCode = await Navigator.push<String?>(
-      context,
-      MaterialPageRoute(builder: (context) => const ScannerView()),
-    );
-
-    if (!mounted) return;
-
-    if (scannedCode != null && scannedCode.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('QR Code Terdeteksi: $scannedCode'),
-          backgroundColor: scadaNormal,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      _refreshDevices();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pemindaian QR Code dibatalkan.'),
-          backgroundColor: Color(0xFF8B98A9),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  /// Simulasi memicu Notifikasi Peringatan Lokal
-  Future<void> _triggerSimulatedNotification() async {
-    await _notificationService.showNotification(
-      title: '🚨 Peringatan SCADA',
-      body: 'Suhu Composter Melewati Batas Aman (75°C)! Segera periksa lokasi.',
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Notifikasi Peringatan Lokal dipicu!'),
-        backgroundColor: scadaAlert,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,26 +86,7 @@ class _DashboardViewState extends State<DashboardView> {
         backgroundColor: scadaAppBarBg,
         elevation: 4,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner, color: scadaNormal),
-            tooltip: 'Scan QR Alat',
-            onPressed: _openScanner,
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_active_outlined, color: scadaAlert),
-            tooltip: 'Simulasi Peringatan',
-            onPressed: _triggerSimulatedNotification,
-          ),
-          IconButton(
-            icon: const Icon(Icons.note_alt_outlined, color: scadaNormal),
-            tooltip: 'Catatan Shift',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotesView()),
-              );
-            },
-          ),
+          // Hanya menyisakan ikon refresh di AppBar
           IconButton(
             icon: const Icon(Icons.refresh, color: scadaNormal),
             tooltip: 'Refresh Data',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note_model.dart';
 import '../services/local_db_service.dart';
 
@@ -13,6 +14,9 @@ class _NotesViewState extends State<NotesView> {
   final LocalDbService _dbService = LocalDbService();
   List<NoteModel> _notes = [];
   bool _isLoading = true;
+
+  String _userRole = 'superadmin';
+  String _currentUserId = '1';
 
   // Constants untuk Tema Industrial SCADA Dark-Mode
   static const Color scadaBg = Color(0xFF0F1218);
@@ -30,11 +34,25 @@ class _NotesViewState extends State<NotesView> {
     _loadNotes();
   }
 
-  /// READ: Mengambil seluruh catatan shift dari database SQLite
+  /// READ: Mengambil catatan shift sesuai logika RBAC berdasarkan role user
   Future<void> _loadNotes() async {
     setState(() => _isLoading = true);
-    final notes = await _dbService.getNotes();
+    final prefs = await SharedPreferences.getInstance();
+    final role = (prefs.getString('user_role') ?? 'superadmin').toLowerCase();
+    final userId = prefs.getString('user_id') ?? '1';
+
+    List<NoteModel> notes;
+    if (role == 'superadmin' || role == 'supervisor') {
+      // Role Superadmin/Supervisor: Menampilkan SEMUA catatan shift dari semua petugas
+      notes = await _dbService.getNotes();
+    } else {
+      // Role Operator/Petugas: HANYA menampilkan catatan milik user_id sendiri
+      notes = await _dbService.getNotesByUser(userId);
+    }
+
     setState(() {
+      _userRole = role;
+      _currentUserId = userId;
       _notes = notes;
       _isLoading = false;
     });
@@ -140,6 +158,8 @@ class _NotesViewState extends State<NotesView> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
 
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
                 final now = DateTime.now().toString().substring(0, 16);
 
                 if (isEditing) {
@@ -149,34 +169,30 @@ class _NotesViewState extends State<NotesView> {
                     description: descriptionController.text.trim(),
                   );
                   await _dbService.updateNote(updatedNote);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Catatan berhasil diperbarui!'),
-                        backgroundColor: scadaNormal,
-                      ),
-                    );
-                  }
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Catatan berhasil diperbarui!'),
+                      backgroundColor: scadaNormal,
+                    ),
+                  );
                 } else {
-                  // CREATE
+                  // CREATE (Menyimpan dengan userId dari user aktif)
                   final newNote = NoteModel(
+                    userId: _currentUserId,
                     title: titleController.text.trim(),
                     description: descriptionController.text.trim(),
                     createdAt: now,
                   );
                   await _dbService.createNote(newNote);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Catatan berhasil disimpan!'),
-                        backgroundColor: scadaNormal,
-                      ),
-                    );
-                  }
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Catatan berhasil disimpan!'),
+                      backgroundColor: scadaNormal,
+                    ),
+                  );
                 }
 
-                if (!mounted) return;
-                Navigator.pop(context);
+                navigator.pop();
                 _loadNotes(); // Refresh UI State
               },
               child: Text(isEditing ? 'SIMPAN' : 'TAMBAH'),
@@ -232,21 +248,44 @@ class _NotesViewState extends State<NotesView> {
 
   @override
   Widget build(BuildContext context) {
+    final isFullAccess = _userRole == 'superadmin' || _userRole == 'supervisor';
+
     return Scaffold(
       backgroundColor: scadaBg,
       appBar: AppBar(
-        title: const Text(
-          'CATATAN SHIFT PETUGAS',
-          style: TextStyle(
-            color: scadaTextPrimary,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
-            fontSize: 18,
-          ),
+        title: Column(
+          children: [
+            const Text(
+              'CATATAN SHIFT PETUGAS',
+              style: TextStyle(
+                color: scadaTextPrimary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+                fontSize: 16,
+              ),
+            ),
+            Text(
+              isFullAccess
+                  ? 'Akses Akses: Semua Catatan (${_userRole.toUpperCase()})'
+                  : 'Akses: Catatan Pribadi (${_userRole.toUpperCase()})',
+              style: const TextStyle(
+                color: scadaNormal,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
         backgroundColor: scadaAppBarBg,
         elevation: 4,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: scadaNormal),
+            tooltip: 'Refresh Catatan',
+            onPressed: _loadNotes,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: scadaNormal))
@@ -257,9 +296,11 @@ class _NotesViewState extends State<NotesView> {
                     children: [
                       const Icon(Icons.assignment_outlined, size: 64, color: scadaTextSecondary),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Belum ada catatan shift.',
-                        style: TextStyle(fontSize: 16, color: scadaTextSecondary),
+                      Text(
+                        isFullAccess
+                            ? 'Belum ada catatan shift tersimpan.'
+                            : 'Belum ada catatan shift dari Anda.',
+                        style: const TextStyle(fontSize: 15, color: scadaTextSecondary),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
@@ -269,7 +310,7 @@ class _NotesViewState extends State<NotesView> {
                           foregroundColor: Colors.black,
                         ),
                         icon: const Icon(Icons.add),
-                        label: const Text('TAMBAH CATATAN PERTAMA'),
+                        label: const Text('TAMBAH CATATAN SHIFT'),
                       ),
                     ],
                   ),
@@ -295,7 +336,6 @@ class _NotesViewState extends State<NotesView> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // KERAPIAN ELEMEN: Teks dibungkus dengan Expanded agar tidak leaking/overflow ke kanan
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,13 +373,27 @@ class _NotesViewState extends State<NotesView> {
                                             fontFamily: 'monospace',
                                           ),
                                         ),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: scadaBorder,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'User ID: ${note.userId}',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              color: scadaTextSecondary,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              // Tombol Hapus (Delete)
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, color: scadaAlert),
                                 tooltip: 'Hapus Catatan',

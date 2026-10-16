@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'services/api_service.dart';
-import 'views/dashboard_view.dart';
 import 'views/login_view.dart';
+import 'views/main_navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Cek token tersimpan di SharedPreferences
+  // Cek token tersimpan di SharedPreferences saat aplikasi dibuka
   final apiService = ApiService();
   final bool loggedIn = await apiService.isLoggedIn();
 
@@ -29,12 +29,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.light,
+          seedColor: Colors.cyan,
+          brightness: Brightness.dark,
         ),
       ),
-      home: DashboardView(),
-      // home: isLoggedIn ? const DashboardView() : const LoginView(),
+      home: isLoggedIn ? const MainNavigationView() : const LoginView(),
     );
   }
 }

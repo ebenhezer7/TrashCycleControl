@@ -25,16 +25,22 @@ class LocalDbService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT '1',
             title TEXT NOT NULL,
             description TEXT NOT NULL,
             created_at TEXT NOT NULL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute("ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT '1'");
+        }
       },
     );
   }
@@ -49,11 +55,24 @@ class LocalDbService {
     );
   }
 
-  /// 3. READ: Mengambil semua data catatan shift, diurutkan dari yang terbaru
+  /// 3a. READ ALL: Mengambil semua data catatan shift (untuk role superadmin & supervisor)
   Future<List<NoteModel>> getNotes() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
+      orderBy: 'id DESC',
+    );
+
+    return List.generate(maps.length, (i) => NoteModel.fromMap(maps[i]));
+  }
+
+  /// 3b. READ BY USER: Mengambil catatan shift khusus milik user_id tertentu (untuk role operator)
+  Future<List<NoteModel>> getNotesByUser(String userId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'notes',
+      where: 'user_id = ?',
+      whereArgs: [userId],
       orderBy: 'id DESC',
     );
 
