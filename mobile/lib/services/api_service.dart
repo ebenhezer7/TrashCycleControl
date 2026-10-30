@@ -100,16 +100,10 @@ class ApiService {
       }
     } on SocketException catch (e) {
       developer.log('Koneksi gagal saat login (SocketException): $e', name: 'ApiService', level: 1000);
-      return {
-        'success': false,
-        'message': 'Tidak dapat terhubung ke server. Pastikan server Laravel sudah berjalan dan internet aktif.',
-      };
+      throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
     } on TimeoutException catch (e) {
       developer.log('Timeout saat login: $e', name: 'ApiService', level: 1000);
-      return {
-        'success': false,
-        'message': 'Koneksi ke server timeout. Silakan coba beberapa saat lagi.',
-      };
+      throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
     } catch (e) {
       developer.log('Exception saat login: $e', name: 'ApiService', level: 1000);
       return {
@@ -131,7 +125,7 @@ class ApiService {
     return prefs.getString(tokenKey);
   }
 
-  /// Menghapus token dari SharedPreferences (Logout).
+  /// Menghapus token dari SharedPreferences (Logout / Sesi Habis).
   Future<bool> logout() async {
     final prefs = await SharedPreferences.getInstance();
     return await prefs.remove(tokenKey);
@@ -149,6 +143,12 @@ class ApiService {
       final response = await _client.get(url, headers: headers).timeout(timeoutDuration);
 
       developer.log('fetchDevices status code: ${response.statusCode}', name: 'ApiService');
+
+      // 1. Penanganan Sesi Habis (401 Unauthorized)
+      if (response.statusCode == 401) {
+        await logout();
+        throw Exception('Sesi habis. Silakan login kembali.');
+      }
 
       if (response.statusCode == 200) {
         final dynamic decodedData = json.decode(response.body);
@@ -174,15 +174,11 @@ class ApiService {
         throw HttpException('Server merespons dengan status code ${response.statusCode}');
       }
     } on SocketException catch (e) {
-      developer.log(
-        'Koneksi gagal / Server belum berjalan (SocketException): $e',
-        name: 'ApiService',
-        level: 1000,
-      );
-      throw Exception('Tidak dapat terhubung ke server. Pastikan server Laravel sudah berjalan dan koneksi internet aktif.');
+      developer.log('Koneksi gagal (SocketException): $e', name: 'ApiService', level: 1000);
+      throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
     } on TimeoutException catch (e) {
       developer.log('Request timeout: $e', name: 'ApiService', level: 1000);
-      throw Exception('Koneksi ke server timeout. Silakan coba beberapa saat lagi.');
+      throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
     } on FormatException catch (e) {
       developer.log('Format JSON tidak sesuai: $e', name: 'ApiService', level: 1000);
       throw FormatException('Format data dari server tidak valid: ${e.message}');
@@ -217,6 +213,12 @@ class ApiService {
 
       developer.log('resolveAction status code: ${response.statusCode}', name: 'ApiService');
 
+      // 1. Penanganan Sesi Habis (401 Unauthorized)
+      if (response.statusCode == 401) {
+        await logout();
+        throw Exception('Sesi habis. Silakan login kembali.');
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         developer.log('Log tindakan berhasil dikirim.', name: 'ApiService');
         return true;
@@ -230,13 +232,13 @@ class ApiService {
       }
     } on SocketException catch (e) {
       developer.log('Koneksi gagal saat resolveAction (SocketException): $e', name: 'ApiService', level: 1000);
-      return false;
+      throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
     } on TimeoutException catch (e) {
       developer.log('Timeout saat resolveAction: $e', name: 'ApiService', level: 1000);
-      return false;
+      throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
     } catch (e) {
       developer.log('Exception saat resolveAction: $e', name: 'ApiService', level: 1000);
-      return false;
+      rethrow;
     }
   }
 

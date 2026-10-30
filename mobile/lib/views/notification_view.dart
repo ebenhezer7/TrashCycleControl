@@ -59,96 +59,124 @@ class NotificationView extends StatelessWidget {
         backgroundColor: scadaAppBarBg,
         elevation: 4,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          final item = notifications[index];
-          final type = item['type'];
-
-          Color statusColor;
-          IconData statusIcon;
-
-          if (type == 'alert') {
-            statusColor = scadaAlert;
-            statusIcon = Icons.error_outline;
-          } else if (type == 'warning') {
-            statusColor = scadaWarning;
-            statusIcon = Icons.warning_amber_rounded;
-          } else if (type == 'normal') {
-            statusColor = scadaNormal;
-            statusIcon = Icons.check_circle_outline;
-          } else {
-            statusColor = const Color(0xFF29B6F6);
-            statusIcon = Icons.info_outline;
-          }
-
-          return Card(
-            elevation: 4,
-            color: scadaCardBg,
-            margin: const EdgeInsets.only(bottom: 12.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: statusColor.withAlpha(100)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: notifications.isEmpty
+          ? const Center(
+              // Micro-Feature 2: Visual Empty State Notifikasi
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: statusColor.withAlpha(30),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(statusIcon, color: statusColor, size: 24),
+                  Icon(
+                    Icons.notifications_off_outlined,
+                    size: 72,
+                    color: scadaTextSecondary,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
+                  SizedBox(height: 16),
+                  Text(
+                    'Belum ada notifikasi saat ini',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: scadaTextSecondary,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Peringatan anomali telemetry akan muncul di sini',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF627182)),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                final item = notifications[index];
+                final type = item['type'];
+
+                Color statusColor;
+                IconData statusIcon;
+
+                if (type == 'alert') {
+                  statusColor = scadaAlert;
+                  statusIcon = Icons.error_outline;
+                } else if (type == 'warning') {
+                  statusColor = scadaWarning;
+                  statusIcon = Icons.warning_amber_rounded;
+                } else if (type == 'normal') {
+                  statusColor = scadaNormal;
+                  statusIcon = Icons.check_circle_outline;
+                } else {
+                  statusColor = const Color(0xFF29B6F6);
+                  statusIcon = Icons.info_outline;
+                }
+
+                return Card(
+                  elevation: 4,
+                  color: scadaCardBg,
+                  margin: const EdgeInsets.only(bottom: 12.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: statusColor.withAlpha(100)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item['title']!,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: scadaTextPrimary,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: statusColor.withAlpha(30),
+                            shape: BoxShape.circle,
                           ),
+                          child: Icon(statusIcon, color: statusColor, size: 24),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item['message']!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: scadaTextSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.access_time, size: 12, color: scadaTextSecondary),
-                            const SizedBox(width: 4),
-                            Text(
-                              item['time']!,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: scadaTextSecondary,
-                                fontFamily: 'monospace',
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item['title']!,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: scadaTextPrimary,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                item['message']!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: scadaTextSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.access_time, size: 12, color: scadaTextSecondary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item['time']!,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: scadaTextSecondary,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

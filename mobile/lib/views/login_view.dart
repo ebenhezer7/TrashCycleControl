@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'dashboard_view.dart';
+import 'main_navigation.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -60,7 +60,7 @@ class _LoginViewState extends State<LoginView> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardView()),
+        MaterialPageRoute(builder: (context) => const MainNavigationView()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,6 +77,7 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: scadaBg,
+      resizeToAvoidBottomInset: true, // Standard 2: Keyboard-Safe UI
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -185,6 +186,8 @@ class _LoginViewState extends State<LoginView> {
                           _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
                           color: scadaTextSecondary,
                         ),
+                        // Standard 3: Accessibility Tooltip
+                        tooltip: _isPasswordVisible ? 'Sembunyikan Password' : 'Tampilkan Password',
                         onPressed: () {
                           setState(() {
                             _isPasswordVisible = !_isPasswordVisible;
@@ -220,7 +223,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Submit Button
+                  // Submit Button dengan Loading Progress Feedback
                   SizedBox(
                     height: 50,
                     child: FilledButton(

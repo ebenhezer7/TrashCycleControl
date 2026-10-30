@@ -13,7 +13,7 @@ class NotificationService {
 
   bool _isInitialized = false;
 
-  /// Inisialisasi plugin notifikasi lokal
+  /// 1. Inisialisasi plugin flutter_local_notifications
   Future<void> init() async {
     if (_isInitialized) return;
 
@@ -31,7 +31,7 @@ class NotificationService {
     await requestPermission();
   }
 
-  /// Meminta izin notifikasi (khusus Android 13+ / API 33+ & iOS)
+  /// 2. Meminta izin notifikasi (wajib untuk Android 13/API 33 ke atas & iOS)
   Future<bool> requestPermission() async {
     if (Platform.isAndroid) {
       final status = await Permission.notification.request();
@@ -40,20 +40,18 @@ class NotificationService {
     return true;
   }
 
-  /// Menampilkan notifikasi lokal peringatan SCADA secara langsung
-  Future<void> showNotification({
-    required String title,
-    required String body,
-  }) async {
+  /// 3. Memunculkan notifikasi peringatan bahaya di system tray HP
+  Future<void> showWarningNotification(String title, String body) async {
     await init();
 
     const androidDetails = AndroidNotificationDetails(
-      'trashcycle_alerts',
-      'Peringatan SCADA Telemetry',
-      channelDescription: 'Saluran notifikasi untuk peringatan anomali alat daur ulang',
+      'trashcycle_warning_channel',
+      'Peringatan Anomali Telemetry',
+      channelDescription: 'Notifikasi otomatis saat parameter alat daur ulang melewati batas aman',
       importance: Importance.max,
       priority: Priority.high,
       ticker: 'Peringatan TrashCycleControl',
+      icon: '@mipmap/ic_launcher',
     );
 
     const notificationDetails = NotificationDetails(
@@ -67,5 +65,10 @@ class NotificationService {
       body,
       notificationDetails,
     );
+  }
+
+  /// Method alias jika dipanggil dengan nama fungsi alternatif
+  Future<void> showNotification({required String title, required String body}) async {
+    await showWarningNotification(title, body);
   }
 }
