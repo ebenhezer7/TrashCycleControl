@@ -1,27 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/device_model.dart';
+import 'log_service.dart';
 
 /// Service untuk menangani komunikasi REST API dengan server backend Laravel.
 class ApiService {
-  // Base URL endpoint API Laravel.
   static const String baseUrl = 'http://10.0.2.2:8000/api/v1';
-
-  // Key untuk menyimpan token autentikasi di SharedPreferences
   static const String tokenKey = 'auth_token';
-
-  // Batas waktu tunggu HTTP Request
   static const Duration timeoutDuration = Duration(seconds: 10);
 
   final http.Client _client;
 
   ApiService({http.Client? client}) : _client = client ?? http.Client();
 
-  /// Helper internal untuk mengambil HTTP Headers beserta Authorization Bearer Token jika tersedia.
+  /// Helper internal untuk mengambil HTTP Headers beserta Authorization Bearer Token
   Future<Map<String, String>> _getHeaders() async {
     final headers = <String, String>{
       'Accept': 'application/json',
@@ -37,7 +32,6 @@ class ApiService {
   }
 
   /// 1. Autentikasi (Login) Petugas Lapangan.
-  /// HTTP POST -> `/api/v1/auth/login`
   Future<Map<String, dynamic>> login(String email, String password) async {
     final Uri url = Uri.parse('$baseUrl/auth/login');
 
@@ -47,7 +41,7 @@ class ApiService {
         'password': password,
       };
 
-      developer.log('Mengirim request login ke $url', name: 'ApiService');
+      Log.info('Mengirim request login ke $url');
 
       final response = await _client
           .post(
@@ -59,8 +53,6 @@ class ApiService {
             body: json.encode(payload),
           )
           .timeout(timeoutDuration);
-
-      developer.log('Login status code: ${response.statusCode}', name: 'ApiService');
 
       final dynamic decodedBody = json.decode(response.body);
 
@@ -76,15 +68,17 @@ class ApiService {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(tokenKey, token);
 
+          Log.info('Login berhasil. Token tersimpan.');
           return {
             'success': true,
             'message': 'Login berhasil',
             'token': token,
           };
         } else {
+          Log.warning('Response 200/201 tanpa token.');
           return {
             'success': false,
-            'message': 'Login berhasil namun token tidak ditemukan dalam respons server.',
+            'message': 'Login berhasil namun token tidak ditemukan.',
           };
         }
       } else {
@@ -93,19 +87,20 @@ class ApiService {
           errorMessage = decodedBody['message'].toString();
         }
 
+        Log.warning('Login gagal. Status: ${response.statusCode}, Msg: $errorMessage');
         return {
           'success': false,
           'message': errorMessage,
         };
       }
-    } on SocketException catch (e) {
-      developer.log('Koneksi gagal saat login (SocketException): $e', name: 'ApiService', level: 1000);
+    } on SocketException catch (e, stackTrace) {
+      Log.error('Koneksi terputus saat login', e, stackTrace);
       throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
-    } on TimeoutException catch (e) {
-      developer.log('Timeout saat login: $e', name: 'ApiService', level: 1000);
+    } on TimeoutException catch (e, stackTrace) {
+      Log.error('Timeout saat login', e, stackTrace);
       throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
-    } catch (e) {
-      developer.log('Exception saat login: $e', name: 'ApiService', level: 1000);
+    } catch (e, stackTrace) {
+      Log.error('Exception tidak terduga saat login', e, stackTrace);
       return {
         'success': false,
         'message': 'Terjadi kesalahan tidak terduga saat login: $e',
@@ -113,39 +108,34 @@ class ApiService {
     }
   }
 
-  /// Memeriksa apakah pengguna sudah terautentikasi.
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
 
-  /// Mengambil token tersimpan dari SharedPreferences.
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(tokenKey);
   }
 
-  /// Menghapus token dari SharedPreferences (Logout / Sesi Habis).
   Future<bool> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    Log.info('User logout. Token dihapus.');
     return await prefs.remove(tokenKey);
   }
 
   /// 2. Mengambil daftar alat daur ulang beserta status sensor dan alert terbarunya.
-  /// HTTP GET -> `/api/v1/devices`
   Future<List<DeviceModel>> fetchDevices() async {
     final Uri url = Uri.parse('$baseUrl/devices');
 
     try {
-      developer.log('Fetching devices from: $url', name: 'ApiService');
+      Log.info('Fetching devices telemetry from $url');
 
       final headers = await _getHeaders();
       final response = await _client.get(url, headers: headers).timeout(timeoutDuration);
 
-      developer.log('fetchDevices status code: ${response.statusCode}', name: 'ApiService');
-
-      // 1. Penanganan Sesi Habis (401 Unauthorized)
       if (response.statusCode == 401) {
+        Log.warning('HTTP 401 Unauthorized pada fetchDevices.');
         await logout();
         throw Exception('Sesi habis. Silakan login kembali.');
       }
@@ -162,34 +152,32 @@ class ApiService {
           jsonList = [];
         }
 
-        return jsonList
+        final devices = jsonList
             .map((item) => DeviceModel.fromJson(item as Map<String, dynamic>))
             .toList();
+
+        Log.info('Berhasil memuat ${devices.length} devices.');
+        return devices;
       } else {
-        developer.log(
-          'Server error saat fetchDevices. Status: ${response.statusCode}, Body: ${response.body}',
-          name: 'ApiService',
-          level: 900,
-        );
+        Log.error('Server error HTTP ${response.statusCode} saat fetchDevices.');
         throw HttpException('Server merespons dengan status code ${response.statusCode}');
       }
-    } on SocketException catch (e) {
-      developer.log('Koneksi gagal (SocketException): $e', name: 'ApiService', level: 1000);
+    } on SocketException catch (e, stackTrace) {
+      Log.error('Koneksi terputus saat fetchDevices (SocketException)', e, stackTrace);
       throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
-    } on TimeoutException catch (e) {
-      developer.log('Request timeout: $e', name: 'ApiService', level: 1000);
+    } on TimeoutException catch (e, stackTrace) {
+      Log.error('Timeout saat fetchDevices (TimeoutException)', e, stackTrace);
       throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
-    } on FormatException catch (e) {
-      developer.log('Format JSON tidak sesuai: $e', name: 'ApiService', level: 1000);
+    } on FormatException catch (e, stackTrace) {
+      Log.error('JSON malformed saat fetchDevices (FormatException)', e, stackTrace);
       throw FormatException('Format data dari server tidak valid: ${e.message}');
-    } catch (e) {
-      developer.log('Kesalahan tidak terduga saat fetchDevices: $e', name: 'ApiService', level: 1000);
+    } catch (e, stackTrace) {
+      Log.error('Unhandled exception saat fetchDevices', e, stackTrace);
       rethrow;
     }
   }
 
   /// 3. Mengirimkan log tindakan perbaikan saat petugas lapangan menekan tombol "Tandai Selesai".
-  /// HTTP POST -> `/api/v1/actions`
   Future<bool> resolveAction(String deviceId, String actionText) async {
     final Uri url = Uri.parse('$baseUrl/actions');
 
@@ -200,7 +188,7 @@ class ApiService {
         'timestamp': DateTime.now().toIso8601String(),
       };
 
-      developer.log('Mengirim log tindakan ke $url: $payload', name: 'ApiService');
+      Log.info('Sending resolve action to $url for device $deviceId');
 
       final headers = await _getHeaders();
       final response = await _client
@@ -211,45 +199,36 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      developer.log('resolveAction status code: ${response.statusCode}', name: 'ApiService');
-
-      // 1. Penanganan Sesi Habis (401 Unauthorized)
       if (response.statusCode == 401) {
+        Log.warning('HTTP 401 Unauthorized pada resolveAction.');
         await logout();
         throw Exception('Sesi habis. Silakan login kembali.');
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        developer.log('Log tindakan berhasil dikirim.', name: 'ApiService');
+        Log.info('Resolve action berhasil dikirim untuk device $deviceId');
         return true;
       } else {
-        developer.log(
-          'Gagal mengirim log tindakan. Status: ${response.statusCode}, Body: ${response.body}',
-          name: 'ApiService',
-          level: 900,
-        );
+        Log.warning('Gagal resolve action. Status: ${response.statusCode}');
         return false;
       }
-    } on SocketException catch (e) {
-      developer.log('Koneksi gagal saat resolveAction (SocketException): $e', name: 'ApiService', level: 1000);
+    } on SocketException catch (e, stackTrace) {
+      Log.error('Koneksi terputus saat resolveAction', e, stackTrace);
       throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
-    } on TimeoutException catch (e) {
-      developer.log('Timeout saat resolveAction: $e', name: 'ApiService', level: 1000);
+    } on TimeoutException catch (e, stackTrace) {
+      Log.error('Timeout saat resolveAction', e, stackTrace);
       throw Exception('Koneksi terputus. Periksa jaringan internet Anda.');
-    } catch (e) {
-      developer.log('Exception saat resolveAction: $e', name: 'ApiService', level: 1000);
+    } catch (e, stackTrace) {
+      Log.error('Unhandled exception saat resolveAction', e, stackTrace);
       rethrow;
     }
   }
 
-  /// 4. Memproses penyelesaian masalah alat (resolve) dan mengirimkan status pemulihan ke backend Laravel.
-  /// HTTP POST -> `/api/v1/actions`
   Future<bool> resolveDeviceIssue(String deviceId, [String? actionText]) async {
     final text = actionText ?? 'Pemulihan status alat ke Normal oleh petugas.';
     return resolveAction(deviceId, text);
   }
 
-  /// Method kompatibilitas jika dipanggil dengan nama fungsi lama
   Future<bool> postActionLog(String deviceId, String action) async {
     return resolveAction(deviceId, action);
   }

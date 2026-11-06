@@ -1,16 +1,42 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'services/api_service.dart';
+import 'services/log_service.dart';
 import 'views/login_view.dart';
 import 'views/main_navigation.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // Tangkapan Global Error Handler menggunakan runZonedGuarded & PlatformDispatcher
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Cek token tersimpan di SharedPreferences saat aplikasi dibuka
-  final apiService = ApiService();
-  final bool loggedIn = await apiService.isLoggedIn();
+    // 1. Tangkapan Error UI Rendering Flutter (Widget / Layout Error)
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      Log.error(
+        'Unhandled Flutter UI Error: ${details.exceptionAsString()}',
+        details.exception,
+        details.stack,
+      );
+    };
 
-  runApp(MyApp(isLoggedIn: loggedIn));
+    // 2. Tangkapan Error Asynchronous / Platform Engine Error
+    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+      Log.error('Unhandled Platform/Async Error: $error', error, stack);
+      return true;
+    };
+
+    // Memeriksa status login petugas
+    final apiService = ApiService();
+    final bool loggedIn = await apiService.isLoggedIn();
+
+    Log.info('Aplikasi TrashCycleControl berhasil diinisialisasi. LoggedIn: $loggedIn');
+
+    runApp(MyApp(isLoggedIn: loggedIn));
+  }, (Object error, StackTrace stack) {
+    Log.error('Unhandled Zone Error: $error', error, stack);
+  });
 }
 
 class MyApp extends StatelessWidget {
