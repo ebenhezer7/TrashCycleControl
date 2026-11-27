@@ -18,6 +18,8 @@ class _DashboardViewState extends State<DashboardView> {
   late Future<List<DeviceModel>> _devicesFuture;
 
   DateTime _lastUpdated = DateTime.now();
+  String _selectedFilter = 'Semua'; // Small Feature: Filter Status Mesin ('Semua', 'Normal', 'Peringatan')
+
   final Set<String> _notifiedDeviceAlerts = {};
   final Set<String> _resolvingDeviceIds = {};
 
@@ -66,6 +68,7 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
+  // Bug Fix: Double-submit prevention pada aksi Resolve
   Future<void> _handleResolve(DeviceModel device) async {
     if (_resolvingDeviceIds.contains(device.id)) return;
 
@@ -142,6 +145,38 @@ class _DashboardViewState extends State<DashboardView> {
         );
       }
     }
+  }
+
+  Widget _buildFilterChip(String label, int count) {
+    final isSelected = _selectedFilter == label;
+    Color activeColor = scadaNormal;
+    if (label == 'Peringatan') {
+      activeColor = scadaAlert;
+    }
+
+    return ChoiceChip(
+      label: Text('$label ($count)'),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _selectedFilter = label;
+          });
+        }
+      },
+      selectedColor: activeColor.withAlpha(45),
+      backgroundColor: scadaAppBarBg,
+      side: BorderSide(
+        color: isSelected ? activeColor : const Color(0xFF2C3444),
+        width: isSelected ? 1.5 : 1.0,
+      ),
+      labelStyle: TextStyle(
+        fontSize: 11,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? activeColor : scadaTextPrimary,
+      ),
+      visualDensity: VisualDensity.compact,
+    );
   }
 
   @override
@@ -292,8 +327,20 @@ class _DashboardViewState extends State<DashboardView> {
               _checkAndTriggerDeviceAlertNotifications(devices);
             });
 
+            // Small Feature: Logika Filter Mesin (Semua, Normal, Peringatan)
+            List<DeviceModel> filteredDevices = devices;
+            if (_selectedFilter == 'Normal') {
+              filteredDevices = devices.where((d) => !d.hasAlert).toList();
+            } else if (_selectedFilter == 'Peringatan') {
+              filteredDevices = devices.where((d) => d.hasAlert).toList();
+            }
+
+            final normalCount = devices.where((d) => !d.hasAlert).length;
+            final alertCount = devices.where((d) => d.hasAlert).length;
+
             return Column(
               children: [
+                // Header Bar Timestamp Update Terakhir
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   color: scadaAppBarBg.withAlpha(120),
@@ -326,44 +373,75 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                 ),
 
+                // Small Feature: Baris Filter Status Mesin SCADA
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                  color: scadaAppBarBg.withAlpha(80),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Filter Status: ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8B98A9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Semua', devices.length),
+                      const SizedBox(width: 6),
+                      _buildFilterChip('Normal', normalCount),
+                      const SizedBox(width: 6),
+                      _buildFilterChip('Peringatan', alertCount),
+                    ],
+                  ),
+                ),
+
                 Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      if (constraints.maxWidth > 600) {
-                        return GridView.builder(
-                          padding: const EdgeInsets.all(16.0),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 1.15,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
+                  child: filteredDevices.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Tidak ada mesin dengan status "$_selectedFilter"',
+                            style: const TextStyle(color: Color(0xFF8B98A9), fontSize: 14),
                           ),
-                          itemCount: devices.length,
-                          itemBuilder: (context, index) {
-                            final device = devices[index];
-                            return DeviceCard(
-                              device: device,
-                              isResolving: _resolvingDeviceIds.contains(device.id),
-                              onResolve: () => _handleResolve(device),
+                        )
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth > 600) {
+                              return GridView.builder(
+                                padding: const EdgeInsets.all(16.0),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 1.15,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: filteredDevices.length,
+                                itemBuilder: (context, index) {
+                                  final device = filteredDevices[index];
+                                  return DeviceCard(
+                                    device: device,
+                                    isResolving: _resolvingDeviceIds.contains(device.id),
+                                    onResolve: () => _handleResolve(device),
+                                  );
+                                },
+                              );
+                            }
+
+                            return ListView.builder(
+                              padding: const EdgeInsets.all(16.0),
+                              itemCount: filteredDevices.length,
+                              itemBuilder: (context, index) {
+                                final device = filteredDevices[index];
+                                return DeviceCard(
+                                  device: device,
+                                  isResolving: _resolvingDeviceIds.contains(device.id),
+                                  onResolve: () => _handleResolve(device),
+                                );
+                              },
                             );
                           },
-                        );
-                      }
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(16.0),
-                        itemCount: devices.length,
-                        itemBuilder: (context, index) {
-                          final device = devices[index];
-                          return DeviceCard(
-                            device: device,
-                            isResolving: _resolvingDeviceIds.contains(device.id),
-                            onResolve: () => _handleResolve(device),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                        ),
                 ),
               ],
             );
@@ -582,6 +660,7 @@ class DeviceCard extends StatelessWidget {
                       width: double.infinity,
                       height: 42,
                       child: FilledButton.icon(
+                        // Bug Fix: Double-submit prevention
                         onPressed: isResolving ? null : onResolve,
                         icon: isResolving
                             ? const SizedBox(

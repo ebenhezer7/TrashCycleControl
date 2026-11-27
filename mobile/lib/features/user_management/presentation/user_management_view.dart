@@ -45,118 +45,136 @@ class _UserManagementViewState extends State<UserManagementView> {
     final emailController = TextEditingController();
     final roleController = TextEditingController(text: 'Petugas Lapangan');
     final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: scadaCardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: scadaBorder),
-        ),
-        title: const Text(
-          'TAMBAH USER BARU',
-          style: TextStyle(
-            color: scadaTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  style: const TextStyle(color: scadaTextPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Nama Lengkap',
-                    labelStyle: const TextStyle(color: scadaTextSecondary),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: scadaBorder),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: scadaNormal, width: 2),
-                    ),
-                  ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Nama wajib diisi' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: scadaTextPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: const TextStyle(color: scadaTextSecondary),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: scadaBorder),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: scadaNormal, width: 2),
-                    ),
-                  ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Email wajib diisi' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: roleController,
-                  style: const TextStyle(color: scadaTextPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Peran / Jabatan',
-                    labelStyle: const TextStyle(color: scadaTextSecondary),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: scadaBorder),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: scadaNormal, width: 2),
-                    ),
-                  ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Peran wajib diisi' : null,
-                ),
-              ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: scadaCardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: scadaBorder),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('BATAL', style: TextStyle(color: scadaTextSecondary)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: scadaNormal,
-              foregroundColor: Colors.black,
+            title: const Text(
+              'TAMBAH USER BARU',
+              style: TextStyle(
+                color: scadaTextPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              setState(() {
-                _users.add({
-                  'name': nameController.text.trim(),
-                  'email': emailController.text.trim(),
-                  'role': roleController.text.trim(),
-                  'status': 'Aktif',
-                });
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('User baru berhasil ditambahkan!'),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      style: const TextStyle(color: scadaTextPrimary),
+                      decoration: InputDecoration(
+                        labelText: 'Nama Lengkap',
+                        labelStyle: const TextStyle(color: scadaTextSecondary),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: scadaBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: scadaNormal, width: 2),
+                        ),
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty ? 'Nama wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: scadaTextPrimary),
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        labelStyle: const TextStyle(color: scadaTextSecondary),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: scadaBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: scadaNormal, width: 2),
+                        ),
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty ? 'Email wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: roleController,
+                      style: const TextStyle(color: scadaTextPrimary),
+                      decoration: InputDecoration(
+                        labelText: 'Peran / Jabatan',
+                        labelStyle: const TextStyle(color: scadaTextSecondary),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: scadaBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: scadaNormal, width: 2),
+                        ),
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty ? 'Peran wajib diisi' : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(context),
+                child: const Text('BATAL', style: TextStyle(color: scadaTextSecondary)),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
                   backgroundColor: scadaNormal,
+                  foregroundColor: Colors.black,
                 ),
-              );
-            },
-            child: const Text('SIMPAN'),
-          ),
-        ],
+                onPressed: isSaving
+                    ? null
+                    : () {
+                        if (!formKey.currentState!.validate()) return;
+                        setDialogState(() => isSaving = true);
+
+                        setState(() {
+                          _users.add({
+                            'name': nameController.text.trim(),
+                            'email': emailController.text.trim(),
+                            'role': roleController.text.trim(),
+                            'status': 'Aktif',
+                          });
+                        });
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('User baru berhasil ditambahkan!'),
+                            backgroundColor: scadaNormal,
+                          ),
+                        );
+                      },
+                child: isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Text('SIMPAN'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

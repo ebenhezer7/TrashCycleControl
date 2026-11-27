@@ -5,34 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a9991d44-7ed1-47eb-980b-efbeecae34a1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Laravel-arsitektur.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Mobile-arsitektur.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Arsitektur.md" beforeDir="false" afterPath="$PROJECT_DIR$/Arsitektur.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/models/device_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/models/note_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/models/recycling_tool.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/repositories/profile_repository.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/services/api_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/services/local_db_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/services/log_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/services/notification_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/validators/profile_validator.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/dashboard_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/log_activity_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/login_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/main_navigation.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/notes_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/notification_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/profile_form.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/profile_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/scanner_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/settings_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/lib/views/user_management_view.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/test/api_service_test.dart" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/test/api_service_test.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/test/profile_validator_test.dart" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/test/profile_validator_test.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/test/scada_system_unit_test.dart" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/test/scada_system_unit_test.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/lib/features/dashboard/presentation/dashboard_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/lib/features/dashboard/presentation/dashboard_view.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/lib/features/user_management/presentation/user_management_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/lib/features/user_management/presentation/user_management_view.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
