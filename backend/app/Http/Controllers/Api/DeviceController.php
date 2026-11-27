@@ -3,34 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Device;
+use App\Http\Requests\ResolveActionRequest;
+use App\Services\DeviceService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class DeviceController extends Controller
 {
+    protected DeviceService $deviceService;
+
+    public function __construct(DeviceService $deviceService)
+    {
+        $this->deviceService = $deviceService;
+    }
+
     /**
      * Menampilkan daftar alat daur ulang beserta log sensor terbarunya.
      */
     public function index(): JsonResponse
     {
-        $devices = Device::with('latestSensorLog')->get();
-
-        $formattedDevices = $devices->map(function ($device) {
-            $latestLog = $device->latestSensorLog;
-
-            return [
-                'id' => (string) $device->id,
-                'name' => $device->name,
-                'type' => $device->type,
-                'status' => $device->status,
-                'current_temperature' => $latestLog ? (float) $latestLog->temperature : 0.0,
-                'current_humidity' => $latestLog ? (float) $latestLog->humidity : 0.0,
-                'current_pressure' => $latestLog ? (float) $latestLog->pressure : 0.0,
-                'alert_status' => $latestLog ? $latestLog->alert_status : 'Normal',
-                'latest_log' => $latestLog,
-            ];
-        });
+        $formattedDevices = $this->deviceService->getAllDevicesFormatted();
 
         return response()->json([
             'status' => 'success',
@@ -42,24 +33,12 @@ class DeviceController extends Controller
     /**
      * Menerima log tindakan perbaikan dari petugas dan menormalkan status alert.
      */
-    public function resolveAction(Request $request): JsonResponse
+    public function resolveAction(ResolveActionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'device_id' => 'required|exists:devices,id',
-            'action_text' => 'required|string',
-        ]);
-
-        $device = Device::findOrFail($validated['device_id']);
-        $device->update(['status' => 'operational']);
-
-        $latestLog = $device->latestSensorLog;
-        if ($latestLog) {
-            $latestLog->update([
-                'alert_status' => 'Normal',
-                'humidity' => $device->type === 'Composter' ? 50.0 : $latestLog->humidity,
-                'pressure' => $device->type === 'Pirolisis' ? 0.3 : $latestLog->pressure,
-            ]);
-        }
+        $this->deviceService->resolveDeviceAction(
+            (int) $request->validated('device_id'),
+            $request->validated('action_text')
+        );
 
         return response()->json([
             'status' => 'success',

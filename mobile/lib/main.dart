@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'services/api_service.dart';
-import 'services/log_service.dart';
-import 'views/login_view.dart';
-import 'views/main_navigation.dart';
+import 'core/network/api_service.dart';
+import 'core/services/log_service.dart';
+import 'features/auth/presentation/login_view.dart';
+import 'features/navigation/presentation/main_navigation.dart';
 
 void main() {
-  // Tangkapan Global Error Handler menggunakan runZonedGuarded & PlatformDispatcher
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 

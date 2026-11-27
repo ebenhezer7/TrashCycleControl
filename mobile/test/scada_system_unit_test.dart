@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trashcycle_control/models/device_model.dart';
-import 'package:trashcycle_control/validators/profile_validator.dart';
+import 'package:trashcycle_control/features/dashboard/data/models/device_model.dart';
+import 'package:trashcycle_control/features/profile/domain/profile_validator.dart';
 
 void main() {
   group('1. ProfileValidator - Validasi Nama (50 Test Cases)', () {

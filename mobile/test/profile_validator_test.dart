@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trashcycle_control/validators/profile_validator.dart';
+import 'package:trashcycle_control/features/profile/domain/profile_validator.dart';
 
 void main() {
   group('ProfileValidator Unit Tests', () {

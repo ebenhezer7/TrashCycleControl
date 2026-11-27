@@ -3,43 +3,41 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\LoginRequest;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    /**
-     * Authenticate user and issue token.
-     */
-    public function login(Request $request): JsonResponse
+    protected AuthService $authService;
+
+    public function __construct(AuthService $authService)
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-        ]);
+        $this->authService = $authService;
+    }
 
-        $user = User::where('email', $credentials['email'])->first();
+    /**
+     * Authenticate user and issue Sanctum token.
+     */
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $result = $this->authService->authenticate(
+            $request->validated('email'),
+            $request->validated('password')
+        );
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (!$result) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Email atau password salah.',
             ], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         return response()->json([
             'status' => 'success',
             'message' => 'Login berhasil.',
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
+            'token' => $result['token'],
+            'user' => $result['user'],
         ], 200);
     }
 }
