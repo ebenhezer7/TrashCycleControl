@@ -1,0 +1,86 @@
+name: TrashCycleControl CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - v1.0_dev
+      - V1.1
+      - main
+      - master
+  pull_request:
+    branches:
+      - v1.0_dev
+      - V1.1
+      - main
+      - master
+
+jobs:
+  # Job 1: Unit Testing (Menjalankan 200 Test Cases)
+  unit-test:
+    name: Unit Testing (200 Test Cases)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: |
+          cd mobile
+          flutter pub get
+
+      - name: Run Unit Tests
+        run: |
+          cd mobile
+          flutter test
+
+  # Job 2: Auto Build & Deploy Release Artifact
+  auto-build-deploy:
+    name: Auto Build & Deploy Release APK
+    needs: unit-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: |
+          cd mobile
+          flutter pub get
+
+      - name: Build Release APK
+        run: |
+          cd mobile
+          flutter build apk --release
+
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
