@@ -30,4 +30,13 @@ class AuthService
             ],
         ];
     }
+
+    /**
+     * Memproses pencabutan token autentikasi (Logout).
+     */
+    public function logout(User $user): bool
+    {
+        $user->tokens()->delete();
+        return true;
+    }
 }

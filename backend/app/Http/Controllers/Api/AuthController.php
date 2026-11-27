@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
@@ -38,6 +39,21 @@ class AuthController extends Controller
             'message' => 'Login berhasil.',
             'token' => $result['token'],
             'user' => $result['user'],
+        ], 200);
+    }
+
+    /**
+     * Revoke user tokens (Logout).
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        if ($request->user()) {
+            $this->authService->logout($request->user());
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logout berhasil.',
         ], 200);
     }
 }

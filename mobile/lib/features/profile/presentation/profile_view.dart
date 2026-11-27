@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/scada_colors.dart';
+import '../../../core/network/api_service.dart';
+import '../../auth/presentation/login_view.dart';
 import '../data/profile_repository.dart';
 import 'profile_form.dart';
 
@@ -13,6 +15,7 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   final ProfileRepository _repository = ProfileRepository();
+  final ApiService _apiService = ApiService();
   bool _isLoading = true;
   Map<String, String> _profileData = {};
 
@@ -21,7 +24,9 @@ class _ProfileViewState extends State<ProfileView> {
   static const Color scadaCardBg = ScadaColors.scadaCardBg;
   static const Color scadaBorder = ScadaColors.scadaBorder;
   static const Color scadaNormal = ScadaColors.scadaNormal;
+  static const Color scadaAlert = ScadaColors.scadaAlert;
   static const Color scadaTextPrimary = ScadaColors.scadaTextPrimary;
+  static const Color scadaTextSecondary = ScadaColors.scadaTextSecondary;
 
   @override
   void initState() {
@@ -36,6 +41,45 @@ class _ProfileViewState extends State<ProfileView> {
       _profileData = data;
       _isLoading = false;
     });
+  }
+
+  Future<void> _handleLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: scadaCardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: scadaBorder),
+        ),
+        title: const Text('LOGOUT AKUN', style: TextStyle(color: scadaTextPrimary)),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari aplikasi TrashCycleControl?',
+          style: TextStyle(color: scadaTextSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('BATAL', style: TextStyle(color: scadaTextSecondary)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: scadaAlert),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('LOGOUT', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _apiService.logout();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginView()),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -156,6 +200,28 @@ class _ProfileViewState extends State<ProfileView> {
                             onSuccess: _loadProfileData,
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Tombol Logout
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _handleLogout,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: scadaAlert,
+                        side: const BorderSide(color: scadaAlert, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.logout),
+                      label: const Text(
+                        'KELUAR AKUN (LOGOUT)',
+                        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
                       ),
                     ),
                   ),

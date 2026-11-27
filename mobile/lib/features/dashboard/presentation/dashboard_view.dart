@@ -3,6 +3,7 @@ import '../../../core/constants/scada_colors.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../auth/presentation/login_view.dart';
+import '../../notifications/presentation/notification_view.dart';
 import '../data/models/device_model.dart';
 
 class DashboardView extends StatefulWidget {
@@ -18,7 +19,7 @@ class _DashboardViewState extends State<DashboardView> {
   late Future<List<DeviceModel>> _devicesFuture;
 
   DateTime _lastUpdated = DateTime.now();
-  String _selectedFilter = 'Semua'; // Small Feature: Filter Status Mesin ('Semua', 'Normal', 'Peringatan')
+  String _selectedFilter = 'Semua';
 
   final Set<String> _notifiedDeviceAlerts = {};
   final Set<String> _resolvingDeviceIds = {};
@@ -68,7 +69,6 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  // Bug Fix: Double-submit prevention pada aksi Resolve
   Future<void> _handleResolve(DeviceModel device) async {
     if (_resolvingDeviceIds.contains(device.id)) return;
 
@@ -186,7 +186,7 @@ class _DashboardViewState extends State<DashboardView> {
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text(
-          'DASHBOARD MONITORING',
+          'TRASHCYCLE CONTROL',
           style: TextStyle(
             color: scadaTextPrimary,
             fontWeight: FontWeight.bold,
@@ -198,6 +198,16 @@ class _DashboardViewState extends State<DashboardView> {
         backgroundColor: scadaAppBarBg,
         elevation: 4,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: scadaNormal),
+            tooltip: 'Riwayat Notifikasi SCADA',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationView()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: scadaNormal),
             tooltip: 'Refresh Data Telemetry SCADA',
@@ -327,7 +337,6 @@ class _DashboardViewState extends State<DashboardView> {
               _checkAndTriggerDeviceAlertNotifications(devices);
             });
 
-            // Small Feature: Logika Filter Mesin (Semua, Normal, Peringatan)
             List<DeviceModel> filteredDevices = devices;
             if (_selectedFilter == 'Normal') {
               filteredDevices = devices.where((d) => !d.hasAlert).toList();
@@ -340,7 +349,6 @@ class _DashboardViewState extends State<DashboardView> {
 
             return Column(
               children: [
-                // Header Bar Timestamp Update Terakhir
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   color: scadaAppBarBg.withAlpha(120),
@@ -373,7 +381,6 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                 ),
 
-                // Small Feature: Baris Filter Status Mesin SCADA
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                   color: scadaAppBarBg.withAlpha(80),
@@ -660,7 +667,6 @@ class DeviceCard extends StatelessWidget {
                       width: double.infinity,
                       height: 42,
                       child: FilledButton.icon(
-                        // Bug Fix: Double-submit prevention
                         onPressed: isResolving ? null : onResolve,
                         icon: isResolving
                             ? const SizedBox(

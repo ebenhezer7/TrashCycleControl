@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'core/network/api_service.dart';
 import 'core/services/log_service.dart';
+import 'core/widgets/main_navigation_view.dart';
 import 'features/auth/presentation/login_view.dart';
-import 'features/navigation/presentation/main_navigation.dart';
 
 void main() {
   runZonedGuarded(() async {
